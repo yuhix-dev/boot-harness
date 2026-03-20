@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Developer-only files ###
+CLAUDE.dev.md
+
 ### Environment ###
 .env
 .env.*
