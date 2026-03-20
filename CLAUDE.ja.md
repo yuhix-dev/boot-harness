@@ -33,10 +33,13 @@ com.bootharness
 
 ## アーキテクチャ
 
-- **フィーチャーベース + レイヤード**: 各パッケージ内で `Controller → Service → Repository`
+- **フィーチャーベースのパッケージ構成** — 1機能のクラスは1ディレクトリに集約（`auth/`、`billing/` など）。
+  これは意図的な設計: 機能の追加・削除が1ディレクトリで完結し、`controller/`・`service/`・`repository/`
+  を横断して探す必要がない。レイヤーベースへの再編成はしないこと。
+- **各パッケージ内はレイヤード**: `Controller → Service → Repository`
 - **Spring Application Events** でフィーチャー間通信（例: `UserRegisteredEvent` → メール送信）
   - `AuthService` から `EmailService` を直接呼ばずにイベントを発行する
-- Hexagonal/DDD は使わない — シンプルで即読みできる構成を優先
+- Hexagonal/DDD は使わない — インターフェースや間接層が増えるほどソロ開発の速度が落ちる
 
 ## REST API
 
