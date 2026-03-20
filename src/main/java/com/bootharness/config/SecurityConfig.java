@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,37 +23,42 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Spring Security configuration.
+ *
+ * <ul>
+ *   <li>Stateless JWT authentication — no HTTP session is created
+ *   <li>CSRF disabled (stateless API — no cookie-based session to protect)
+ *   <li>CORS delegated to {@link CorsConfig}
+ * </ul>
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
   private final JwtService jwtService;
   private final UserRepository userRepository;
-  private final AppProperties appProperties;
 
-  public SecurityConfig(
-      JwtService jwtService, UserRepository userRepository, AppProperties appProperties) {
+  public SecurityConfig(JwtService jwtService, UserRepository userRepository) {
     this.jwtService = jwtService;
     this.userRepository = userRepository;
-    this.appProperties = appProperties;
   }
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .cors(Customizer.withDefaults())
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login")
-                    .permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh")
+                auth.requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/refresh")
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info")
                     .permitAll()
@@ -66,19 +72,6 @@ public class SecurityConfig {
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
-  }
-
-  @Bean
-  public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(List.of(appProperties.cors().allowedOrigins().split(",")));
-    config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    config.setAllowedHeaders(List.of("*"));
-    config.setAllowCredentials(true);
-
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", config);
-    return source;
   }
 
   private OncePerRequestFilter jwtAuthFilter() {

@@ -47,6 +47,15 @@ public class RefreshToken {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 
+  /** Creates a new refresh token for the given user with the specified expiration window. */
+  public static RefreshToken create(User user, long expirationMs) {
+    RefreshToken token = new RefreshToken();
+    token.user = user;
+    token.token = UUID.randomUUID().toString();
+    token.expiresAt = OffsetDateTime.now().plusNanos(expirationMs * 1_000_000L);
+    return token;
+  }
+
   public boolean isExpired() {
     return OffsetDateTime.now().isAfter(expiresAt);
   }
