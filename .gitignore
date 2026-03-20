@@ -38,6 +38,7 @@ out/
 
 ### Developer-only files ###
 CLAUDE.dev.md
+.claude/settings.local.json
 
 ### Environment ###
 .env
