@@ -1,0 +1,27 @@
+app:
+  jwt:
+    secret: "test-secret-key-must-be-at-least-32-characters-for-hmac"
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+  cors:
+    allowed-origins: "http://localhost:3000"
+  email:
+    resend-api-key: "test"
+    from-address: "test@example.com"
+  stripe:
+    secret-key: "test"
+    webhook-secret: "test"
+    price-id-starter: "test"
+    price-id-pro: "test"
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "test"
+            client-secret: "test"
+          github:
+            client-id: "test"
+            client-secret: "test"

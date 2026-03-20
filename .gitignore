@@ -39,6 +39,7 @@ out/
 ### Developer-only files (never push these) ###
 CLAUDE.dev.md
 TWEET.md
+REVIEW_NOTES.md
 .claude/settings.local.json
 
 ### Environment ###

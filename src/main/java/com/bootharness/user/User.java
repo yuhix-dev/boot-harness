@@ -46,6 +46,18 @@ public class User {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 
+  /**
+   * Creates a local (email/password) user. Password must already be encoded before calling this
+   * method.
+   */
+  public static User createLocal(String email, String encodedPassword, String name) {
+    User user = new User();
+    user.email = email;
+    user.password = encodedPassword;
+    user.name = name;
+    return user;
+  }
+
   public enum Role {
     USER,
     ADMIN
