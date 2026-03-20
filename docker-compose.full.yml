@@ -19,19 +19,18 @@ services:
 
   db:
     image: postgres:17-alpine
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_DB: bootharness
-      POSTGRES_USER: bootharness
-      POSTGRES_PASSWORD: bootharness
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: local
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bootharness"]
+      test: ["CMD-SHELL", "pg_isready -U local"]
       interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:
