@@ -33,10 +33,14 @@ com.bootharness
 
 ## Architecture
 
-- **Feature-based + Layered**: `Controller → Service → Repository` within each feature package
+- **Feature-based packaging** — all classes for a feature live in one package (`auth/`, `billing/`, etc.).
+  This keeps each feature self-contained: adding or removing a feature means touching one directory.
+  As your project grows, feel free to introduce stricter layering (Clean Architecture, Hexagonal, etc.)
+  within each package if your team or codebase complexity warrants it.
+- **Layered within each package**: `Controller → Service → Repository`
 - **Spring Application Events** for cross-feature communication (e.g., `UserRegisteredEvent` → email)
   - Never call `EmailService` directly from `AuthService` — publish an event instead
-- No Hexagonal/DDD — keep it simple and immediately readable
+- No Hexagonal/DDD out of the box — optimized for a solo developer getting to production quickly
 
 ## REST API
 
