@@ -65,6 +65,12 @@ com.bootharness
 | `STRIPE_PRICE_ID_STARTER` | Create a Price in Stripe dashboard and paste the ID |
 | `STRIPE_PRICE_ID_PRO`     | Same as above for Pro plan                          |
 
+## Documentation
+
+- `docs/en/` — English guides (getting-started, auth, billing, email, deployment)
+- `docs/ja/` — Japanese guides (same structure)
+- Update the relevant doc when implementing a feature
+
 ## Out of Scope
 
 Frontend, Kafka, GraphQL, gRPC, Kubernetes, WebSocket, multi-tenancy, soft delete, feature flags.
