@@ -58,6 +58,14 @@ public class User {
     return user;
   }
 
+  /** Creates an OAuth2 user (no password). */
+  public static User createOAuth(String email, String name) {
+    User user = new User();
+    user.email = email;
+    user.name = name;
+    return user;
+  }
+
   public enum Role {
     USER,
     ADMIN

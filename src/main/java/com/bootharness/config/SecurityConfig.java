@@ -1,6 +1,10 @@
 package com.bootharness.config;
 
+import com.bootharness.auth.CustomOAuth2UserService;
+import com.bootharness.auth.CustomOidcUserService;
 import com.bootharness.auth.JwtService;
+import com.bootharness.auth.OAuth2AuthenticationFailureHandler;
+import com.bootharness.auth.OAuth2AuthenticationSuccessHandler;
 import com.bootharness.user.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,8 +33,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Spring Security configuration.
  *
  * <ul>
- *   <li>Stateless JWT authentication — no HTTP session is created
- *   <li>CSRF disabled (stateless API — no cookie-based session to protect)
+ *   <li>JWT authentication for API requests — tokens validated on every request
+ *   <li>OAuth2 login for Google and GitHub — state stored in HTTP session (short-lived)
+ *   <li>CSRF disabled (API uses JWT — not cookie-based auth)
  *   <li>CORS delegated to {@link CorsConfig}
  * </ul>
  */
@@ -40,18 +45,34 @@ public class SecurityConfig {
 
   private final JwtService jwtService;
   private final UserRepository userRepository;
+  private final CustomOAuth2UserService customOAuth2UserService;
+  private final CustomOidcUserService customOidcUserService;
+  private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+  private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
 
-  public SecurityConfig(JwtService jwtService, UserRepository userRepository) {
+  public SecurityConfig(
+      JwtService jwtService,
+      UserRepository userRepository,
+      CustomOAuth2UserService customOAuth2UserService,
+      CustomOidcUserService customOidcUserService,
+      OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler,
+      OAuth2AuthenticationFailureHandler oAuth2FailureHandler) {
     this.jwtService = jwtService;
     this.userRepository = userRepository;
+    this.customOAuth2UserService = customOAuth2UserService;
+    this.customOidcUserService = customOidcUserService;
+    this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+    this.oAuth2FailureHandler = oAuth2FailureHandler;
   }
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())
+        // Sessions are only created to store the OAuth2 state parameter during the authorization
+        // flow. API requests are authenticated via JWT — the jwtAuthFilter below.
         .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
@@ -60,10 +81,22 @@ public class SecurityConfig {
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh")
                     .permitAll()
+                    .requestMatchers("/oauth2/**", "/login/oauth2/**")
+                    .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
+        .oauth2Login(
+            oauth2 ->
+                oauth2
+                    .userInfoEndpoint(
+                        userInfo ->
+                            userInfo
+                                .userService(customOAuth2UserService)
+                                .oidcUserService(customOidcUserService))
+                    .successHandler(oAuth2SuccessHandler)
+                    .failureHandler(oAuth2FailureHandler))
         .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
