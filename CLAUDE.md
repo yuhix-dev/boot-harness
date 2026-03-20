@@ -29,6 +29,7 @@ com.bootharness
 - **Logging**: SLF4J with structured key-value pairs — no string concatenation
 - **No speculative work**: Only implement what is explicitly requested
 - **Dead code**: When replacing an implementation, delete the old one entirely
+- **Formatting**: Google Java Style via Spotless. Run `./gradlew spotlessApply` before committing. `./gradlew check` enforces it.
 
 ## Architecture
 
@@ -69,7 +70,7 @@ com.bootharness
 
 - `docs/en/` — English guides (getting-started, auth, billing, email, deployment)
 - `docs/ja/` — Japanese guides (same structure)
-- Update the relevant doc when implementing a feature
+- **When implementing a feature, always update both `docs/en/` and `docs/ja/` accordingly**
 
 ## Out of Scope
 
