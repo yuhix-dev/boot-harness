@@ -1,9 +1,22 @@
-# Development: starts PostgreSQL only.
-# Run the app with: ./gradlew bootRun
+# Full stack: starts the app and PostgreSQL together.
+# Requires a .env file — copy .env.example and fill in the values:
+#   cp .env.example .env
 #
-# To start everything in one command (e.g. for a quick demo), use:
+# Then run:
 #   docker compose -f docker-compose.full.yml up
 services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:17-alpine
     ports:

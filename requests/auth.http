@@ -1,0 +1,52 @@
+# Auth API
+# IntelliJ  : select environment from the dropdown, then click the run button next to each request
+# VS Code    : install "REST Client" extension, then click "Send Request" above each request
+#
+# After login, copy the refreshToken from the response and update @refreshToken below.
+
+@baseUrl = {{baseUrl}}
+
+# ─────────────────────────────────────────
+# Update these after a successful login
+# ─────────────────────────────────────────
+@accessToken = <paste_access_token_here>
+@refreshToken = <paste_refresh_token_here>
+
+
+### Register
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "name": "Test User"
+}
+
+
+### Login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+
+### Refresh token
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+
+### Logout
+POST {{baseUrl}}/api/v1/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
