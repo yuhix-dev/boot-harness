@@ -1,5 +1,11 @@
 # CLAUDE.md — BootHarness Codebase Guide
 
+> **Japanese?** A Japanese version is available at `CLAUDE.ja.md`.
+> To use it, rename the files:
+> ```bash
+> mv CLAUDE.md CLAUDE.en.md && mv CLAUDE.ja.md CLAUDE.md
+> ```
+
 Spring Boot 3.x SaaS backend starter kit. **Backend API only** — no frontend included.
 Rename `com.bootharness` to your own package before building your product.
 
@@ -23,6 +29,7 @@ com.bootharness
 - **Logging**: SLF4J with structured key-value pairs — no string concatenation
 - **No speculative work**: Only implement what is explicitly requested
 - **Dead code**: When replacing an implementation, delete the old one entirely
+- **Formatting**: Google Java Style via Spotless. Run `./gradlew spotlessApply` before committing. `./gradlew check` enforces it.
 
 ## Architecture
 
@@ -52,12 +59,18 @@ com.bootharness
 
 ## FIXMEs — Required Before Launch
 
-| Variable | Action |
-|----------|--------|
-| `JWT_SECRET` | Generate a secure random secret (min 256-bit) |
-| `EMAIL_FROM` | Set your verified Resend sender address |
+| Variable                  | Action                                              |
+|---------------------------|-----------------------------------------------------|
+| `JWT_SECRET`              | Generate a secure random secret (min 256-bit)       |
+| `EMAIL_FROM`              | Set your verified Resend sender address             |
 | `STRIPE_PRICE_ID_STARTER` | Create a Price in Stripe dashboard and paste the ID |
-| `STRIPE_PRICE_ID_PRO` | Same as above for Pro plan |
+| `STRIPE_PRICE_ID_PRO`     | Same as above for Pro plan                          |
+
+## Documentation
+
+- `docs/en/` — English guides (getting-started, auth, billing, email, deployment)
+- `docs/ja/` — Japanese guides (same structure)
+- **When implementing a feature, always update both `docs/en/` and `docs/ja/` accordingly**
 
 ## Out of Scope
 
