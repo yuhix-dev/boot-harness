@@ -24,10 +24,17 @@ com.bootharness
 - **No speculative work**: Only implement what is explicitly requested
 - **Dead code**: When replacing an implementation, delete the old one entirely
 
+## Architecture
+
+- **Feature-based + Layered**: `Controller → Service → Repository` within each feature package
+- **Spring Application Events** for cross-feature communication (e.g., `UserRegisteredEvent` → email)
+  - Never call `EmailService` directly from `AuthService` — publish an event instead
+- No Hexagonal/DDD — keep it simple and immediately readable
+
 ## REST API
 
 - Base path: `/api/v1/`
-- Error format: `{ "error": "ERROR_CODE", "message": "...", "details": {} }`
+- Error format: RFC 7807 `ProblemDetail` (Spring Boot 3.x native — `application/problem+json`)
 - Validation: Jakarta annotations (`@Valid`, `@NotBlank`, etc.)
 
 ## Database
