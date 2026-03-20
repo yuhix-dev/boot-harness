@@ -1,5 +1,11 @@
 # CLAUDE.md — BootHarness Codebase Guide
 
+> **Japanese?** A Japanese version is available at `CLAUDE.ja.md`.
+> To use it, rename the files:
+> ```bash
+> mv CLAUDE.md CLAUDE.en.md && mv CLAUDE.ja.md CLAUDE.md
+> ```
+
 Spring Boot 3.x SaaS backend starter kit. **Backend API only** — no frontend included.
 Rename `com.bootharness` to your own package before building your product.
 
