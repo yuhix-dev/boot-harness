@@ -29,6 +29,7 @@ com.bootharness
 - **ログ**: SLF4J + 構造化キーバリュー形式 — 文字列結合は使わない
 - **投機的実装禁止**: 明示的に依頼されたことだけ実装する
 - **デッドコード**: 実装を置き換えたら古いコードは必ず削除する
+- **フォーマット**: SpotlessでGoogle Java Styleを強制。コミット前に `./gradlew spotlessApply` を実行。`./gradlew check` でチェックされます。
 
 ## アーキテクチャ
 
@@ -65,6 +66,16 @@ com.bootharness
 | `STRIPE_PRICE_ID_STARTER` | Stripeダッシュボードで作成したPrice IDを設定 |
 | `STRIPE_PRICE_ID_PRO` | Proプラン用も同様に設定 |
 
+## ドキュメント
+
+- `docs/en/` — 英語ガイド（getting-started、auth、billing、email、deployment）
+- `docs/ja/` — 日本語ガイド（同じ構成）
+- **機能を実装したら、必ず `docs/en/` と `docs/ja/` の両方を更新する**
+
 ## スコープ外
 
 フロントエンド、Kafka、GraphQL、gRPC、Kubernetes、WebSocket、マルチテナント、論理削除、フィーチャーフラグ。
+
+## Building in Public ツイート
+
+ツイートを依頼された場合（「ツイートを考えて」など）は `TWEET.md` のルールに従う。
