@@ -19,8 +19,12 @@ import com.bootharness.config.AppProperties;
 import com.bootharness.user.User;
 import com.bootharness.user.UserRepository;
 import java.util.Optional;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,6 +32,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AuthService")
 class AuthServiceTest {
 
   @Mock private UserRepository userRepository;
@@ -50,136 +55,179 @@ class AuthServiceTest {
     given(refreshTokenRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
   }
 
-  // --- register ---
+  @Nested
+  @DisplayName("register()")
+  class Register {
 
-  @Test
-  void register_returnsTokenPair_whenEmailIsNew() {
-    given(userRepository.existsByEmail("new@example.com")).willReturn(false);
-    given(userRepository.save(any(User.class))).willAnswer(inv -> inv.getArgument(0));
-    given(passwordEncoder.encode("password")).willReturn("encoded");
-    stubTokenIssuance();
+    @Test
+    @DisplayName("returns token pair when email is new")
+    void returnsTokenPair() {
+      given(userRepository.existsByEmail("new@example.com")).willReturn(false);
+      given(userRepository.save(any(User.class))).willAnswer(inv -> inv.getArgument(0));
+      given(passwordEncoder.encode("password")).willReturn("encoded");
+      stubTokenIssuance();
 
-    AuthResponse response =
-        authService.register(new RegisterRequest("new@example.com", "password", "Alice"));
+      AuthResponse response =
+          authService.register(new RegisterRequest("new@example.com", "password", "Alice"));
 
-    assertThat(response.accessToken()).isEqualTo("access-token");
-    assertThat(response.refreshToken()).isNotNull();
-    // UserRegisteredEvent is not an ApplicationEvent, so use any(UserRegisteredEvent.class)
-    // to resolve the publishEvent(Object) overload correctly
-    then(eventPublisher).should().publishEvent(any(UserRegisteredEvent.class));
+      assertThat(response.accessToken()).isEqualTo("access-token");
+      assertThat(response.refreshToken()).isNotNull();
+      // UserRegisteredEvent is not an ApplicationEvent, so use any(UserRegisteredEvent.class)
+      // to resolve the publishEvent(Object) overload correctly
+      then(eventPublisher).should().publishEvent(any(UserRegisteredEvent.class));
+    }
+
+    @Test
+    @DisplayName("throws EmailAlreadyInUseException when email already exists")
+    void throwsWhenEmailExists() {
+      given(userRepository.existsByEmail("existing@example.com")).willReturn(true);
+
+      assertThatThrownBy(
+              () ->
+                  authService.register(
+                      new RegisterRequest("existing@example.com", "password", "Bob")))
+          .isInstanceOf(EmailAlreadyInUseException.class);
+
+      then(userRepository).should(never()).save(any());
+    }
   }
 
-  @Test
-  void register_throwsEmailAlreadyInUseException_whenEmailExists() {
-    given(userRepository.existsByEmail("existing@example.com")).willReturn(true);
+  @Nested
+  @DisplayName("login()")
+  class Login {
 
-    assertThatThrownBy(
-            () ->
-                authService.register(
-                    new RegisterRequest("existing@example.com", "password", "Bob")))
-        .isInstanceOf(EmailAlreadyInUseException.class);
+    @Test
+    @DisplayName("returns token pair when credentials are valid")
+    void returnsTokenPair() {
+      User user = User.createLocal("user@example.com", "encoded", "Carol");
+      given(userRepository.findByEmail("user@example.com")).willReturn(Optional.of(user));
+      given(passwordEncoder.matches("password", "encoded")).willReturn(true);
+      stubTokenIssuance();
 
-    then(userRepository).should(never()).save(any());
+      AuthResponse response = authService.login(new LoginRequest("user@example.com", "password"));
+
+      assertThat(response.accessToken()).isEqualTo("access-token");
+      assertThat(response.refreshToken()).isNotNull();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(LoginFailure.class)
+    @DisplayName("throws InvalidCredentialsException when")
+    void throwsInvalidCredentials(LoginFailure scenario) {
+      scenario.setup(userRepository, passwordEncoder);
+
+      assertThatThrownBy(() -> authService.login(new LoginRequest("u@e.com", "pw")))
+          .isInstanceOf(InvalidCredentialsException.class);
+    }
   }
 
-  // --- login ---
+  @Nested
+  @DisplayName("refresh()")
+  class Refresh {
 
-  @Test
-  void login_returnsTokenPair_whenCredentialsAreValid() {
-    User user = User.createLocal("user@example.com", "encoded", "Carol");
-    given(userRepository.findByEmail("user@example.com")).willReturn(Optional.of(user));
-    given(passwordEncoder.matches("password", "encoded")).willReturn(true);
-    stubTokenIssuance();
+    @Test
+    @DisplayName("returns new token pair and deletes the old token")
+    void returnsNewTokenPairAndDeletesOld() {
+      User user = User.createLocal("user@example.com", "encoded", "Frank");
+      RefreshToken token = RefreshToken.create(user, REFRESH_TOKEN_EXPIRY_MS);
+      given(refreshTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
+      stubTokenIssuance();
 
-    AuthResponse response = authService.login(new LoginRequest("user@example.com", "password"));
+      AuthResponse response = authService.refresh("valid-token");
 
-    assertThat(response.accessToken()).isEqualTo("access-token");
-    assertThat(response.refreshToken()).isNotNull();
+      assertThat(response.accessToken()).isEqualTo("access-token");
+      then(refreshTokenRepository).should().delete(token);
+    }
+
+    @Test
+    @DisplayName("throws TokenException when token is not found")
+    void throwsWhenTokenNotFound() {
+      given(refreshTokenRepository.findByToken("unknown")).willReturn(Optional.empty());
+
+      assertThatThrownBy(() -> authService.refresh("unknown")).isInstanceOf(TokenException.class);
+    }
+
+    @Test
+    @DisplayName("throws TokenException and deletes the token when expired")
+    void throwsAndDeletesWhenExpired() {
+      User user = User.createLocal("user@example.com", "encoded", "Grace");
+      RefreshToken expiredToken = RefreshToken.create(user, -1L);
+      given(refreshTokenRepository.findByToken("expired-token"))
+          .willReturn(Optional.of(expiredToken));
+
+      assertThatThrownBy(() -> authService.refresh("expired-token"))
+          .isInstanceOf(TokenException.class)
+          .hasMessageContaining("expired");
+
+      then(refreshTokenRepository).should().delete(expiredToken);
+    }
   }
 
-  @Test
-  void login_throwsInvalidCredentialsException_whenEmailNotFound() {
-    given(userRepository.findByEmail("unknown@example.com")).willReturn(Optional.empty());
+  @Nested
+  @DisplayName("logout()")
+  class Logout {
 
-    assertThatThrownBy(() -> authService.login(new LoginRequest("unknown@example.com", "password")))
-        .isInstanceOf(InvalidCredentialsException.class);
+    @Test
+    @DisplayName("deletes the token when found")
+    void deletesTokenWhenFound() {
+      User user = User.createLocal("user@example.com", "encoded", "Hank");
+      RefreshToken token = RefreshToken.create(user, REFRESH_TOKEN_EXPIRY_MS);
+      given(refreshTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
+
+      authService.logout("valid-token");
+
+      then(refreshTokenRepository).should().delete(token);
+    }
+
+    @Test
+    @DisplayName("does nothing when token is not found")
+    void doesNothingWhenTokenNotFound() {
+      given(refreshTokenRepository.findByToken("unknown")).willReturn(Optional.empty());
+
+      authService.logout("unknown");
+
+      then(refreshTokenRepository).should(never()).delete(any());
+    }
   }
 
-  @Test
-  void login_throwsInvalidCredentialsException_whenPasswordDoesNotMatch() {
-    User user = User.createLocal("user@example.com", "encoded", "Dave");
-    given(userRepository.findByEmail("user@example.com")).willReturn(Optional.of(user));
-    given(passwordEncoder.matches("wrong", "encoded")).willReturn(false);
+  /**
+   * Enum-based parameterization for login failure scenarios. Each constant encapsulates the mock
+   * setup that causes login to fail, eliminating the need for separate test methods.
+   */
+  private enum LoginFailure {
+    EMAIL_NOT_FOUND("email is not registered") {
+      @Override
+      void setup(UserRepository repo, PasswordEncoder encoder) {
+        given(repo.findByEmail(any())).willReturn(Optional.empty());
+      }
+    },
+    WRONG_PASSWORD("password does not match") {
+      @Override
+      void setup(UserRepository repo, PasswordEncoder encoder) {
+        User user = User.createLocal("u@e.com", "encoded", "X");
+        given(repo.findByEmail(any())).willReturn(Optional.of(user));
+        given(encoder.matches(any(), any())).willReturn(false);
+      }
+    },
+    OAUTH_ONLY("user has no password (OAuth-only)") {
+      @Override
+      void setup(UserRepository repo, PasswordEncoder encoder) {
+        User user = User.createLocal("u@e.com", null, "X");
+        given(repo.findByEmail(any())).willReturn(Optional.of(user));
+      }
+    };
 
-    assertThatThrownBy(() -> authService.login(new LoginRequest("user@example.com", "wrong")))
-        .isInstanceOf(InvalidCredentialsException.class);
-  }
+    private final String description;
 
-  @Test
-  void login_throwsInvalidCredentialsException_whenUserIsOAuthOnly() {
-    // OAuth2-only users have null password
-    User user = User.createLocal("oauth@example.com", null, "Eve");
-    given(userRepository.findByEmail("oauth@example.com")).willReturn(Optional.of(user));
+    LoginFailure(String description) {
+      this.description = description;
+    }
 
-    assertThatThrownBy(() -> authService.login(new LoginRequest("oauth@example.com", "password")))
-        .isInstanceOf(InvalidCredentialsException.class);
-  }
+    abstract void setup(UserRepository repo, PasswordEncoder encoder);
 
-  // --- refresh ---
-
-  @Test
-  void refresh_returnsNewTokenPair_andDeletesOldToken() {
-    User user = User.createLocal("user@example.com", "encoded", "Frank");
-    RefreshToken token = RefreshToken.create(user, REFRESH_TOKEN_EXPIRY_MS);
-    given(refreshTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
-    stubTokenIssuance();
-
-    AuthResponse response = authService.refresh("valid-token");
-
-    assertThat(response.accessToken()).isEqualTo("access-token");
-    then(refreshTokenRepository).should().delete(token);
-  }
-
-  @Test
-  void refresh_throwsTokenException_whenTokenNotFound() {
-    given(refreshTokenRepository.findByToken("unknown")).willReturn(Optional.empty());
-
-    assertThatThrownBy(() -> authService.refresh("unknown")).isInstanceOf(TokenException.class);
-  }
-
-  @Test
-  void refresh_throwsTokenException_andDeletesToken_whenExpired() {
-    User user = User.createLocal("user@example.com", "encoded", "Grace");
-    RefreshToken expiredToken = RefreshToken.create(user, -1L);
-    given(refreshTokenRepository.findByToken("expired-token"))
-        .willReturn(Optional.of(expiredToken));
-
-    assertThatThrownBy(() -> authService.refresh("expired-token"))
-        .isInstanceOf(TokenException.class)
-        .hasMessageContaining("expired");
-
-    then(refreshTokenRepository).should().delete(expiredToken);
-  }
-
-  // --- logout ---
-
-  @Test
-  void logout_deletesToken_whenFound() {
-    User user = User.createLocal("user@example.com", "encoded", "Hank");
-    RefreshToken token = RefreshToken.create(user, REFRESH_TOKEN_EXPIRY_MS);
-    given(refreshTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
-
-    authService.logout("valid-token");
-
-    then(refreshTokenRepository).should().delete(token);
-  }
-
-  @Test
-  void logout_doesNothing_whenTokenNotFound() {
-    given(refreshTokenRepository.findByToken("unknown")).willReturn(Optional.empty());
-
-    authService.logout("unknown");
-
-    then(refreshTokenRepository).should(never()).delete(any());
+    @Override
+    public String toString() {
+      return description;
+    }
   }
 }
