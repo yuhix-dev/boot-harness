@@ -48,6 +48,9 @@ REVIEW_NOTES.md
 .env.*
 !.env.example
 
+### HTTP client private env (tokens, secrets) ###
+http-client.private.env.json
+
 ### macOS ###
 .DS_Store
 

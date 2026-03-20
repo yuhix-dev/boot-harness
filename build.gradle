@@ -64,3 +64,17 @@ tasks.named('check') {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Load .env file for local development (copy .env.example to .env to get started)
+tasks.named('bootRun') {
+	if (file('.env').exists()) {
+		file('.env').readLines().each { line ->
+			if (!line.startsWith('#') && line.contains('=')) {
+				def idx = line.indexOf('=')
+				def key = line.substring(0, idx)
+				def value = line.substring(idx + 1)
+				environment key.trim(), value?.trim() ?: ''
+			}
+		}
+	}
+}
