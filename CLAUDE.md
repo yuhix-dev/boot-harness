@@ -58,12 +58,12 @@ com.bootharness
 
 ## FIXMEs — Required Before Launch
 
-| Variable | Action |
-|----------|--------|
-| `JWT_SECRET` | Generate a secure random secret (min 256-bit) |
-| `EMAIL_FROM` | Set your verified Resend sender address |
+| Variable                  | Action                                              |
+|---------------------------|-----------------------------------------------------|
+| `JWT_SECRET`              | Generate a secure random secret (min 256-bit)       |
+| `EMAIL_FROM`              | Set your verified Resend sender address             |
 | `STRIPE_PRICE_ID_STARTER` | Create a Price in Stripe dashboard and paste the ID |
-| `STRIPE_PRICE_ID_PRO` | Same as above for Pro plan |
+| `STRIPE_PRICE_ID_PRO`     | Same as above for Pro plan                          |
 
 ## Out of Scope
 
