@@ -34,12 +34,12 @@ com.bootharness
 ## アーキテクチャ
 
 - **フィーチャーベースのパッケージ構成** — 1機能のクラスは1ディレクトリに集約（`auth/`、`billing/` など）。
-  これは意図的な設計: 機能の追加・削除が1ディレクトリで完結し、`controller/`・`service/`・`repository/`
-  を横断して探す必要がない。レイヤーベースへの再編成はしないこと。
+  機能の追加・削除が1ディレクトリで完結するのが利点。プロジェクトが成長したら、チームや複雑さに応じて
+  各パッケージ内に Clean Architecture や Hexagonal Architecture を導入しても構わない。
 - **各パッケージ内はレイヤード**: `Controller → Service → Repository`
 - **Spring Application Events** でフィーチャー間通信（例: `UserRegisteredEvent` → メール送信）
   - `AuthService` から `EmailService` を直接呼ばずにイベントを発行する
-- Hexagonal/DDD は使わない — インターフェースや間接層が増えるほどソロ開発の速度が落ちる
+- Hexagonal/DDD はデフォルトでは採用しない — ソロ開発者が素早くプロダクションに出せる構成を優先
 
 ## REST API
 
