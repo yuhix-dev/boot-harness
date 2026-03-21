@@ -50,6 +50,14 @@ public class OauthIdentity {
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
 
+  public static OauthIdentity create(User user, OauthProvider provider, String providerId) {
+    OauthIdentity identity = new OauthIdentity();
+    identity.user = user;
+    identity.provider = provider;
+    identity.providerId = providerId;
+    return identity;
+  }
+
   public enum OauthProvider {
     GOOGLE,
     GITHUB

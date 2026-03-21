@@ -50,3 +50,15 @@ Content-Type: application/json
 {
   "refreshToken": "{{refreshToken}}"
 }
+
+
+# ─────────────────────────────────────────
+# OAuth2 — open these URLs in a browser
+# ─────────────────────────────────────────
+# Google:  {{baseUrl}}/oauth2/authorization/google
+# GitHub:  {{baseUrl}}/oauth2/authorization/github
+#
+# On success, the browser is redirected to:
+#   {FRONTEND_BASE_URL}/auth/callback?accessToken=...&refreshToken=...
+# On failure:
+#   {FRONTEND_BASE_URL}/auth/error

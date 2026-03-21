@@ -32,7 +32,7 @@ class JwtServiceTest {
   private static JwtService createJwtService(long accessTokenExpirationMs) {
     return new JwtService(
         new AppProperties(
-            new AppProperties.Jwt(SECRET, accessTokenExpirationMs, 0L), null, null, null));
+            new AppProperties.Jwt(SECRET, accessTokenExpirationMs, 0L), null, null, null, null));
   }
 
   @Nested
