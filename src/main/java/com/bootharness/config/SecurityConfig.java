@@ -76,6 +76,14 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
+        // Return 401 for unauthenticated API requests instead of redirecting to the login page.
+        // The OAuth2 flow is initiated by the client navigating to
+        // /oauth2/authorization/{provider}.
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(
+                    (request, response, authException) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
         .oauth2Login(
             oauth2 ->
                 oauth2
