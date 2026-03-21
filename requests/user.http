@@ -2,7 +2,7 @@
 # IntelliJ  : select environment from the dropdown, then click the run button next to each request
 # VS Code    : install "REST Client" extension, then click "Send Request" above each request
 
-@baseUrl = {{baseUrl}}
+@baseUrl = {{baseUrl}}/api/v1/users/me
 
 # ─────────────────────────────────────────
 # Update after a successful login
@@ -11,5 +11,5 @@
 
 
 ### Get current user
-GET {{baseUrl}}/api/v1/users/me
+GET {{baseUrl}}
 Authorization: Bearer {{accessToken}}
