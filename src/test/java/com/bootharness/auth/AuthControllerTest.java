@@ -9,6 +9,7 @@ import com.bootharness.auth.dto.PasswordResetRequestRequest;
 import com.bootharness.auth.dto.RefreshRequest;
 import com.bootharness.auth.dto.RegisterRequest;
 import com.bootharness.auth.dto.SetPasswordRequest;
+import com.bootharness.email.EmailRepository;
 import com.bootharness.user.User;
 import com.bootharness.user.UserRepository;
 import java.time.OffsetDateTime;
@@ -22,6 +23,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -40,6 +42,7 @@ class AuthControllerTest {
   @Autowired PasswordResetTokenRepository passwordResetTokenRepository;
   @Autowired RefreshTokenRepository refreshTokenRepository;
   @Autowired JwtService jwtService;
+  @MockBean EmailRepository emailRepository;
 
   @BeforeEach
   void setUp() {

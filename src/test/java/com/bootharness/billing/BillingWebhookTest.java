@@ -2,9 +2,11 @@ package com.bootharness.billing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.bootharness.email.EmailRepository;
 import com.bootharness.user.User;
 import com.bootharness.user.UserRepository;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.HexFormat;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +37,7 @@ class BillingWebhookTest {
   @Autowired TestRestTemplate restTemplate;
   @Autowired UserRepository userRepository;
   @Autowired StripeEventRepository stripeEventRepository;
+  @MockBean EmailRepository emailRepository;
 
   @BeforeEach
   void setUp() {
@@ -106,7 +110,7 @@ class BillingWebhookTest {
   }
 
   private HttpHeaders webhookHeaders(String payload) {
-    long timestamp = 1_700_000_000L;
+    long timestamp = Instant.now().getEpochSecond();
     String signedPayload = timestamp + "." + payload;
     String signature = hmacSha256Hex(WEBHOOK_SECRET, signedPayload);
 
