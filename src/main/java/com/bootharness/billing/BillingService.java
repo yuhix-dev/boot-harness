@@ -10,10 +10,11 @@ import com.bootharness.billing.event.PaymentFailedEvent;
 import com.bootharness.config.AppProperties;
 import com.bootharness.user.User;
 import com.bootharness.user.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
-import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.CustomerCreateParams;
@@ -39,6 +40,7 @@ public class BillingService {
   private final SubscriptionRepository subscriptionRepository;
   private final StripeEventRepository stripeEventRepository;
   private final ApplicationEventPublisher eventPublisher;
+  private final ObjectMapper objectMapper;
 
   public CheckoutResponse createCheckoutSession(User user, CheckoutRequest request) {
     try {
@@ -128,42 +130,23 @@ public class BillingService {
   }
 
   private void handleCheckoutCompleted(com.stripe.model.Event event) {
-    StripeObject obj = event.getDataObjectDeserializer().getObject().orElse(null);
-    if (!(obj instanceof Session session)) return;
-
     try {
-      String stripeSubscriptionId = session.getSubscription();
+      JsonNode node = rawJson(event);
+      String subscriptionId = node.path("subscription").asText(null);
+      String customerId = node.path("customer").asText(null);
+      if (subscriptionId == null || customerId == null) {
+        log.warn("checkout.session.completed missing subscription or customer fields");
+        return;
+      }
       com.stripe.model.Subscription stripeSub =
-          com.stripe.model.Subscription.retrieve(stripeSubscriptionId);
-
-      String customerId = session.getCustomer();
+          com.stripe.model.Subscription.retrieve(subscriptionId);
       User user =
           userRepository
               .findByStripeCustomerId(customerId)
               .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          "No user found for Stripe customer: " + customerId));
-
-      String priceId = stripeSub.getItems().getData().get(0).getPrice().getId();
-      Plan plan = resolvePlan(priceId);
-      Status status = resolveStatus(stripeSub.getStatus());
-      OffsetDateTime periodEnd =
-          OffsetDateTime.ofInstant(
-              Instant.ofEpochSecond(stripeSub.getCurrentPeriodEnd()), ZoneOffset.UTC);
-
-      Subscription subscription =
-          subscriptionRepository.findByUser(user).orElse(new Subscription());
-
-      subscription.setUser(user);
-      subscription.setStripeSubscriptionId(stripeSubscriptionId);
-      subscription.setStripePriceId(priceId);
-      subscription.setPlan(plan);
-      subscription.setStatus(status);
-      subscription.setCurrentPeriodEnd(periodEnd);
-      subscriptionRepository.save(subscription);
-
-      log.info("Subscription activated userId={} plan={}", user.getId(), plan);
+                  () -> new IllegalStateException("No user for Stripe customer: " + customerId));
+      upsertSubscription(user, stripeSub);
+      log.info("Subscription activated userId={}", user.getId());
     } catch (StripeException e) {
       log.error("Failed to retrieve subscription from Stripe", e);
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to process checkout");
@@ -171,57 +154,74 @@ public class BillingService {
   }
 
   private void handleSubscriptionUpdated(com.stripe.model.Event event) {
-    StripeObject obj = event.getDataObjectDeserializer().getObject().orElse(null);
-    if (!(obj instanceof com.stripe.model.Subscription stripeSub)) return;
+    String subscriptionId = rawJson(event).path("id").asText(null);
+    if (subscriptionId == null) return;
 
     subscriptionRepository
-        .findByStripeSubscriptionId(stripeSub.getId())
+        .findByStripeSubscriptionId(subscriptionId)
         .ifPresent(
             sub -> {
-              String priceId = stripeSub.getItems().getData().get(0).getPrice().getId();
-              sub.setStripePriceId(priceId);
-              sub.setPlan(resolvePlan(priceId));
-              sub.setStatus(resolveStatus(stripeSub.getStatus()));
-              sub.setCurrentPeriodEnd(
-                  OffsetDateTime.ofInstant(
-                      Instant.ofEpochSecond(stripeSub.getCurrentPeriodEnd()), ZoneOffset.UTC));
-              subscriptionRepository.save(sub);
-              log.info(
-                  "Subscription updated userId={} plan={} status={}",
-                  sub.getUser().getId(),
-                  sub.getPlan(),
-                  sub.getStatus());
+              try {
+                upsertSubscription(
+                    sub.getUser(), com.stripe.model.Subscription.retrieve(subscriptionId));
+                log.info("Subscription updated userId={}", sub.getUser().getId());
+              } catch (StripeException e) {
+                log.error("Failed to retrieve updated subscription from Stripe", e);
+              }
             });
   }
 
-  private void handlePaymentFailed(com.stripe.model.Event event) {
-    StripeObject obj = event.getDataObjectDeserializer().getObject().orElse(null);
-    if (!(obj instanceof com.stripe.model.Invoice invoice)) return;
-
-    userRepository
-        .findByStripeCustomerId(invoice.getCustomer())
-        .ifPresentOrElse(
-            user -> {
-              eventPublisher.publishEvent(
-                  new PaymentFailedEvent(user, invoice.getHostedInvoiceUrl()));
-              log.info("Payment failed userId={}", user.getId());
-            },
-            () -> log.warn("Payment failed for unknown customer id={}", invoice.getCustomer()));
-  }
-
   private void handleSubscriptionDeleted(com.stripe.model.Event event) {
-    StripeObject obj = event.getDataObjectDeserializer().getObject().orElse(null);
-    if (!(obj instanceof com.stripe.model.Subscription stripeSub)) return;
+    String subscriptionId = rawJson(event).path("id").asText(null);
+    if (subscriptionId == null) return;
 
     subscriptionRepository
-        .findByStripeSubscriptionId(stripeSub.getId())
+        .findByStripeSubscriptionId(subscriptionId)
         .ifPresentOrElse(
             sub -> {
               sub.setStatus(Status.CANCELED);
               subscriptionRepository.save(sub);
               log.info("Subscription canceled userId={}", sub.getUser().getId());
             },
-            () -> log.warn("Received deletion for unknown subscription id={}", stripeSub.getId()));
+            () -> log.warn("Deletion for unknown subscription id={}", subscriptionId));
+  }
+
+  private void handlePaymentFailed(com.stripe.model.Event event) {
+    JsonNode node = rawJson(event);
+    String customerId = node.path("customer").asText(null);
+    String invoiceUrl = node.path("hosted_invoice_url").asText(null);
+    if (customerId == null) return;
+
+    userRepository
+        .findByStripeCustomerId(customerId)
+        .ifPresentOrElse(
+            user -> {
+              eventPublisher.publishEvent(new PaymentFailedEvent(user, invoiceUrl));
+              log.info("Payment failed userId={}", user.getId());
+            },
+            () -> log.warn("Payment failed for unknown customer id={}", customerId));
+  }
+
+  private void upsertSubscription(User user, com.stripe.model.Subscription stripeSub) {
+    String priceId = stripeSub.getItems().getData().getFirst().getPrice().getId();
+    Subscription sub = subscriptionRepository.findByUser(user).orElse(new Subscription());
+    sub.setUser(user);
+    sub.setStripeSubscriptionId(stripeSub.getId());
+    sub.setStripePriceId(priceId);
+    sub.setPlan(resolvePlan(priceId));
+    sub.setStatus(resolveStatus(stripeSub.getStatus()));
+    sub.setCurrentPeriodEnd(
+        OffsetDateTime.ofInstant(
+            Instant.ofEpochSecond(stripeSub.getCurrentPeriodEnd()), ZoneOffset.UTC));
+    subscriptionRepository.save(sub);
+  }
+
+  private JsonNode rawJson(com.stripe.model.Event event) {
+    try {
+      return objectMapper.readTree(event.getDataObjectDeserializer().getRawJson());
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to parse Stripe event JSON", e);
+    }
   }
 
   private String ensureStripeCustomer(User user) throws StripeException {
