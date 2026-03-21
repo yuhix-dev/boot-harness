@@ -185,9 +185,10 @@ When changing behavior:
 Before coding:
 
 1. read this file
-2. inspect relevant code and docs
-3. understand whether the task belongs to Starter or Pro
-4. keep the change aligned with BootHarness positioning
+2. if present, read `AGENTS.dev.md` for maintainer-only context (never commit its contents)
+3. inspect relevant code and docs
+4. understand whether the task belongs to Starter or Pro
+5. keep the change aligned with BootHarness positioning
 
 When implementing:
 
