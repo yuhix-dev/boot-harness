@@ -35,7 +35,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
       throws IOException {
 
     String email = extractEmail(authentication.getPrincipal());
-    User user = userRepository.findByEmail(email).orElseThrow();
+    User user =
+        userRepository
+            .findByEmail(email)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "OAuth2 user not found after provisioning: " + email));
 
     String accessToken = jwtService.generateAccessToken(user.getId(), user.getEmail());
     RefreshToken refreshToken =

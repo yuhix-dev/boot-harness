@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -41,6 +42,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
   private final JwtService jwtService;
@@ -49,21 +51,6 @@ public class SecurityConfig {
   private final CustomOidcUserService customOidcUserService;
   private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
   private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
-
-  public SecurityConfig(
-      JwtService jwtService,
-      UserRepository userRepository,
-      CustomOAuth2UserService customOAuth2UserService,
-      CustomOidcUserService customOidcUserService,
-      OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler,
-      OAuth2AuthenticationFailureHandler oAuth2FailureHandler) {
-    this.jwtService = jwtService;
-    this.userRepository = userRepository;
-    this.customOAuth2UserService = customOAuth2UserService;
-    this.customOidcUserService = customOidcUserService;
-    this.oAuth2SuccessHandler = oAuth2SuccessHandler;
-    this.oAuth2FailureHandler = oAuth2FailureHandler;
-  }
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

@@ -25,14 +25,15 @@ class OAuth2AuthService {
    * is linked to that account.
    */
   @Transactional
-  User findOrCreateUser(String email, String name, OauthProvider provider, String providerId) {
-    return oauthIdentityRepository
-        .findByProviderAndProviderId(provider, providerId)
-        .map(OauthIdentity::getUser)
-        .orElseGet(() -> provisionUser(email, name, provider, providerId));
+  void findOrCreateUser(String email, String name, OauthProvider provider, String providerId) {
+    boolean exists =
+        oauthIdentityRepository.findByProviderAndProviderId(provider, providerId).isPresent();
+    if (!exists) {
+      provisionUser(email, name, provider, providerId);
+    }
   }
 
-  private User provisionUser(String email, String name, OauthProvider provider, String providerId) {
+  private void provisionUser(String email, String name, OauthProvider provider, String providerId) {
     User user =
         userRepository
             .findByEmail(email)
@@ -44,12 +45,6 @@ class OAuth2AuthService {
                   return newUser;
                 });
 
-    OauthIdentity identity = new OauthIdentity();
-    identity.setUser(user);
-    identity.setProvider(provider);
-    identity.setProviderId(providerId);
-    oauthIdentityRepository.save(identity);
-
-    return user;
+    oauthIdentityRepository.save(OauthIdentity.create(user, provider, providerId));
   }
 }
