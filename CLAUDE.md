@@ -77,6 +77,12 @@ com.bootharness
 - `docs/ja/` — Japanese guides (same structure)
 - **When implementing a feature, always update both `docs/en/` and `docs/ja/` accordingly**
 
+## HTTP Request Files
+
+- `requests/` — HTTP request files for manual testing (IntelliJ HTTP Client / VS Code REST Client)
+- **When adding or modifying an API endpoint, always update or create the corresponding `.http` file in `requests/`**
+- One `.http` file per feature (e.g. `auth.http`, `billing.http`)
+
 ## Out of Scope
 
 Frontend, Kafka, GraphQL, gRPC, Kubernetes, WebSocket, multi-tenancy, soft delete, feature flags.

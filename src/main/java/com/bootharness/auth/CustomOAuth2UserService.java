@@ -1,5 +1,6 @@
 package com.bootharness.auth;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -7,6 +8,7 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
@@ -38,13 +40,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     Map<String, Object> attributes = oAuth2User.getAttributes();
-    String email = strategy.extractEmail(attributes);
+    String email = strategy.resolveEmail(attributes, userRequest.getAccessToken().getTokenValue());
+
     if (email == null) {
       throw new OAuth2AuthenticationException(
           new OAuth2Error("email_not_found"),
           "Email not available from "
               + registrationId
-              + ". Make your email public in provider settings.");
+              + ". Ensure your account has a verified email address.");
     }
 
     oauth2AuthService.findOrCreateUser(
@@ -52,6 +55,20 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         strategy.extractName(attributes),
         strategy.provider(),
         strategy.extractProviderId(attributes));
+
+    // Return a new OAuth2User with the resolved email in attributes so downstream
+    // handlers (e.g. OAuth2AuthenticationSuccessHandler) can read it via getAttribute("email").
+    if (attributes.get("email") == null) {
+      Map<String, Object> enriched = new HashMap<>(attributes);
+      enriched.put("email", email);
+      String nameAttributeKey =
+          userRequest
+              .getClientRegistration()
+              .getProviderDetails()
+              .getUserInfoEndpoint()
+              .getUserNameAttributeName();
+      return new DefaultOAuth2User(oAuth2User.getAuthorities(), enriched, nameAttributeKey);
+    }
 
     return oAuth2User;
   }

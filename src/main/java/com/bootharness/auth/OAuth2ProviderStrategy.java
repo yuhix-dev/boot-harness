@@ -21,5 +21,13 @@ interface OAuth2ProviderStrategy {
   /** Returns null if the provider did not supply an email address. */
   String extractEmail(Map<String, Object> attributes);
 
+  /**
+   * Resolves the email address, performing additional API calls if needed (e.g. GitHub private
+   * email). Defaults to {@link #extractEmail(Map)}.
+   */
+  default String resolveEmail(Map<String, Object> attributes, String accessToken) {
+    return extractEmail(attributes);
+  }
+
   String extractName(Map<String, Object> attributes);
 }
