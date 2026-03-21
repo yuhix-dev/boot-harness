@@ -43,7 +43,7 @@ AGENTS.dev.md
 TWEET.md
 REVIEW_NOTES.md
 .claude/settings.local.json
-.codex/settings.local.json
+.codex/config.local.toml
 
 ### Environment ###
 .env
