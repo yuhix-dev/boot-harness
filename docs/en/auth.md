@@ -58,7 +58,7 @@ This design allows one user to link multiple OAuth2 providers without schema cha
 
 | Method         | Endpoint                              | Notes                          |
 |----------------|---------------------------------------|-------------------------------|
-| Email/password | `POST /api/v1/auth/register` + login  | Password is BCrypt hashed      |
+| Email/password | `POST /api/v1/auth/register` + login  | Password is hashed             |
 | Google OAuth2  | `GET /oauth2/authorization/google`    | Authorization Code + PKCE      |
 | GitHub OAuth2  | `GET /oauth2/authorization/github`    | Authorization Code + PKCE      |
 
@@ -77,7 +77,7 @@ If a user registered with a password and then logs in via OAuth2 with the same e
 
 ### Set password (authenticated)
 
-`POST /api/v1/auth/password` — requires `Authorization: Bearer <accessToken>`
+`PUT /api/v1/auth/password` — requires `Authorization: Bearer <accessToken>`
 
 Sets or updates the password for the currently authenticated user. Useful for OAuth2 users who want to enable password-based login.
 

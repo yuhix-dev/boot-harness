@@ -19,6 +19,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -111,8 +112,9 @@ class AuthControllerTest {
     String accessToken = jwtService.generateAccessToken(oauthUser.getId(), oauthUser.getEmail());
 
     var setResponse =
-        restTemplate.postForEntity(
+        restTemplate.exchange(
             "/api/v1/auth/password",
+            HttpMethod.PUT,
             new HttpEntity<>(new SetPasswordRequest("newpassword1"), bearerHeaders(accessToken)),
             Void.class);
     assertThat(setResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -124,8 +126,11 @@ class AuthControllerTest {
   @Test
   void setPassword_withoutAuth_isRejected() {
     var response =
-        restTemplate.postForEntity(
-            "/api/v1/auth/password", new SetPasswordRequest("newpassword1"), Void.class);
+        restTemplate.exchange(
+            "/api/v1/auth/password",
+            HttpMethod.PUT,
+            new HttpEntity<>(new SetPasswordRequest("newpassword1")),
+            Void.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
   }
