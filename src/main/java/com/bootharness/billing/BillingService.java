@@ -6,6 +6,7 @@ import com.bootharness.billing.dto.CheckoutRequest;
 import com.bootharness.billing.dto.CheckoutResponse;
 import com.bootharness.billing.dto.PortalResponse;
 import com.bootharness.billing.dto.SubscriptionResponse;
+import com.bootharness.billing.event.PaymentFailedEvent;
 import com.bootharness.config.AppProperties;
 import com.bootharness.user.User;
 import com.bootharness.user.UserRepository;
@@ -22,6 +23,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +38,7 @@ public class BillingService {
   private final UserRepository userRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final StripeEventRepository stripeEventRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   public CheckoutResponse createCheckoutSession(User user, CheckoutRequest request) {
     try {
@@ -117,7 +120,9 @@ public class BillingService {
 
     switch (event.getType()) {
       case "checkout.session.completed" -> handleCheckoutCompleted(event);
+      case "customer.subscription.updated" -> handleSubscriptionUpdated(event);
       case "customer.subscription.deleted" -> handleSubscriptionDeleted(event);
+      case "invoice.payment_failed" -> handlePaymentFailed(event);
       default -> log.debug("Unhandled webhook event={}", event.getType());
     }
   }
@@ -163,6 +168,45 @@ public class BillingService {
       log.error("Failed to retrieve subscription from Stripe", e);
       throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to process checkout");
     }
+  }
+
+  private void handleSubscriptionUpdated(com.stripe.model.Event event) {
+    StripeObject obj = event.getDataObjectDeserializer().getObject().orElse(null);
+    if (!(obj instanceof com.stripe.model.Subscription stripeSub)) return;
+
+    subscriptionRepository
+        .findByStripeSubscriptionId(stripeSub.getId())
+        .ifPresent(
+            sub -> {
+              String priceId = stripeSub.getItems().getData().get(0).getPrice().getId();
+              sub.setStripePriceId(priceId);
+              sub.setPlan(resolvePlan(priceId));
+              sub.setStatus(resolveStatus(stripeSub.getStatus()));
+              sub.setCurrentPeriodEnd(
+                  OffsetDateTime.ofInstant(
+                      Instant.ofEpochSecond(stripeSub.getCurrentPeriodEnd()), ZoneOffset.UTC));
+              subscriptionRepository.save(sub);
+              log.info(
+                  "Subscription updated userId={} plan={} status={}",
+                  sub.getUser().getId(),
+                  sub.getPlan(),
+                  sub.getStatus());
+            });
+  }
+
+  private void handlePaymentFailed(com.stripe.model.Event event) {
+    StripeObject obj = event.getDataObjectDeserializer().getObject().orElse(null);
+    if (!(obj instanceof com.stripe.model.Invoice invoice)) return;
+
+    userRepository
+        .findByStripeCustomerId(invoice.getCustomer())
+        .ifPresentOrElse(
+            user -> {
+              eventPublisher.publishEvent(
+                  new PaymentFailedEvent(user, invoice.getHostedInvoiceUrl()));
+              log.info("Payment failed userId={}", user.getId());
+            },
+            () -> log.warn("Payment failed for unknown customer id={}", invoice.getCustomer()));
   }
 
   private void handleSubscriptionDeleted(com.stripe.model.Event event) {
