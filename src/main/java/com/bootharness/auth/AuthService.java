@@ -6,6 +6,7 @@ import com.bootharness.api.exception.TokenException;
 import com.bootharness.auth.dto.AuthResponse;
 import com.bootharness.auth.dto.LoginRequest;
 import com.bootharness.auth.dto.RegisterRequest;
+import com.bootharness.auth.event.PasswordResetRequestedEvent;
 import com.bootharness.auth.event.UserRegisteredEvent;
 import com.bootharness.config.AppProperties;
 import com.bootharness.user.User;
@@ -23,6 +24,7 @@ public class AuthService {
 
   private final UserRepository userRepository;
   private final RefreshTokenRepository refreshTokenRepository;
+  private final PasswordResetTokenRepository passwordResetTokenRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final ApplicationEventPublisher eventPublisher;
@@ -92,6 +94,59 @@ public class AuthService {
   @Transactional
   public void logout(String rawRefreshToken) {
     refreshTokenRepository.findByToken(rawRefreshToken).ifPresent(refreshTokenRepository::delete);
+  }
+
+  /**
+   * Sets or updates the password for an authenticated user.
+   *
+   * <p>OAuth2 users can call this to enable password-based login in addition to OAuth2.
+   */
+  @Transactional
+  public void setPassword(User currentUser, String newPassword) {
+    currentUser.setPassword(passwordEncoder.encode(newPassword));
+    userRepository.save(currentUser);
+  }
+
+  /**
+   * Initiates a password reset by sending a reset token to the given email.
+   *
+   * <p>Always returns successfully to prevent email enumeration — no error is thrown if the email
+   * is not found.
+   */
+  @Transactional
+  public void requestPasswordReset(String email) {
+    userRepository
+        .findByEmail(email)
+        .ifPresent(
+            user -> {
+              passwordResetTokenRepository.deleteByUser(user);
+              PasswordResetToken token = PasswordResetToken.create(user);
+              passwordResetTokenRepository.save(token);
+              eventPublisher.publishEvent(new PasswordResetRequestedEvent(user, token.getToken()));
+            });
+  }
+
+  /**
+   * Validates the reset token and sets the new password.
+   *
+   * @throws TokenException if the token is invalid or expired
+   */
+  @Transactional
+  public void confirmPasswordReset(String rawToken, String newPassword) {
+    PasswordResetToken stored =
+        passwordResetTokenRepository
+            .findByToken(rawToken)
+            .orElseThrow(() -> new TokenException("Invalid or expired reset token"));
+
+    if (stored.isExpired()) {
+      passwordResetTokenRepository.delete(stored);
+      throw new TokenException("Invalid or expired reset token");
+    }
+
+    User user = stored.getUser();
+    user.setPassword(passwordEncoder.encode(newPassword));
+    userRepository.save(user);
+    passwordResetTokenRepository.delete(stored);
   }
 
   private AuthResponse issueTokens(User user) {
