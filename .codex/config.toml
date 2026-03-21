@@ -1,0 +1,9 @@
+[rules]
+prefix_rules = [
+  { pattern = [{ token = "rm" }, { token = "-rf" }], decision = "forbidden", justification = "Prevent destructive deletes." },
+  { pattern = [{ token = "rm" }, { token = "-fr" }], decision = "forbidden", justification = "Prevent destructive deletes." },
+  { pattern = [{ token = "sudo" }], decision = "forbidden", justification = "Prevent privilege escalation." },
+  { pattern = [{ token = "git" }, { token = "push" }, { token = "--force" }], decision = "forbidden", justification = "Prevent force pushes." },
+  { pattern = [{ token = "git" }, { token = "push" }, { token = "--force-with-lease" }], decision = "forbidden", justification = "Prevent force pushes." },
+  { pattern = [{ token = "git" }, { token = "reset" }, { token = "--hard" }], decision = "forbidden", justification = "Prevent destructive resets." }
+]
