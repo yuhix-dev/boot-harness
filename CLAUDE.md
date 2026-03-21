@@ -58,8 +58,9 @@ com.bootharness
 ## Security
 
 - Access tokens: JWT, 15-min expiry. Refresh tokens: DB-stored, 7-day expiry
-- Passwords: BCrypt. OAuth2: Authorization Code + PKCE
+- Passwords: hashed. OAuth2: Authorization Code + PKCE
 - CORS: `CORS_ALLOWED_ORIGINS` env var
+- **Do not document security implementation details** (hashing algorithms, token signing algorithms, cipher suites, etc.) in any git-tracked file — docs, comments, or CLAUDE.md. These details help attackers optimize exploits.
 
 ## FIXMEs — Required Before Launch
 

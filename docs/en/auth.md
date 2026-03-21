@@ -56,11 +56,60 @@ This design allows one user to link multiple OAuth2 providers without schema cha
 
 ## Supported Authentication Methods
 
-| Method         | Notes                          |
-|----------------|-------------------------------|
-| Email/password | Password is BCrypt hashed      |
-| Google OAuth2  | Authorization Code + PKCE      |
-| GitHub OAuth2  | Authorization Code + PKCE      |
+| Method         | Endpoint                              | Notes                          |
+|----------------|---------------------------------------|-------------------------------|
+| Email/password | `POST /api/v1/auth/register` + login  | Password is hashed             |
+| Google OAuth2  | `GET /oauth2/authorization/google`    | Authorization Code + PKCE      |
+| GitHub OAuth2  | `GET /oauth2/authorization/github`    | Authorization Code + PKCE      |
+
+### Which method should I use?
+
+Both methods are supported simultaneously and share the same user account if the email matches:
+
+- **Email/password** — traditional login. Users register with an email and password, then log in with those credentials.
+- **OAuth2 (Google / GitHub)** — social login. The user is redirected to the provider, then back to your frontend with tokens. No password required.
+
+If a user registers via OAuth2 and later wants to also log in with a password, they can call `POST /api/v1/auth/password` while authenticated to set one.
+
+If a user registered with a password and then logs in via OAuth2 with the same email, the OAuth2 identity is automatically linked to their existing account — no duplicate user is created.
+
+## Password Management Endpoints
+
+### Set password (authenticated)
+
+`PUT /api/v1/auth/password` — requires `Authorization: Bearer <accessToken>`
+
+Sets or updates the password for the currently authenticated user. Useful for OAuth2 users who want to enable password-based login.
+
+```json
+{ "password": "newpassword123" }
+```
+
+Returns `204 No Content`.
+
+### Request password reset
+
+`POST /api/v1/auth/password/reset/request` — public
+
+Sends a password reset email. Always returns `202 Accepted` regardless of whether the email exists (prevents email enumeration).
+
+```json
+{ "email": "user@example.com" }
+```
+
+The `PasswordResetRequestedEvent` is published — wire up an email listener to send the reset link. The token expires in **1 hour**.
+
+### Confirm password reset
+
+`POST /api/v1/auth/password/reset/confirm` — public
+
+Validates the reset token and sets the new password. The token is single-use and deleted on success.
+
+```json
+{ "token": "<reset-token>", "newPassword": "newpassword123" }
+```
+
+Returns `204 No Content`. Throws `401` if the token is invalid or expired.
 
 ## Extending the `users` Table
 

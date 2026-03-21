@@ -56,11 +56,60 @@ CREATE TABLE oauth_identities (
 
 ## 対応する認証方式
 
-| 方式              | 備考                          |
-|------------------|-------------------------------|
-| メール/パスワード  | パスワードはBCryptでハッシュ化  |
-| Google OAuth2    | Authorization Code + PKCE     |
-| GitHub OAuth2    | Authorization Code + PKCE     |
+| 方式              | エンドポイント                           | 備考                          |
+|------------------|----------------------------------------|-------------------------------|
+| メール/パスワード  | `POST /api/v1/auth/register` + login   | パスワードはハッシュ化済み      |
+| Google OAuth2    | `GET /oauth2/authorization/google`     | Authorization Code + PKCE     |
+| GitHub OAuth2    | `GET /oauth2/authorization/github`     | Authorization Code + PKCE     |
+
+### どちらを使うべきか
+
+両方の認証方式は同時にサポートされており、メールアドレスが一致する場合は同じユーザーアカウントを共有します。
+
+- **メール/パスワード** — 従来型のログイン。メールアドレスとパスワードで登録し、同じ情報でログインします。
+- **OAuth2（Google / GitHub）** — ソーシャルログイン。プロバイダーにリダイレクトされ、認証後にトークンとともにフロントエンドに戻ります。パスワード不要。
+
+OAuth2で登録したユーザーがパスワードログインも使いたい場合は、認証済み状態で `POST /api/v1/auth/password` を呼ぶとパスワードを設定できます。
+
+パスワードで登録したユーザーが同じメールアドレスでOAuth2ログインした場合、OAuth2 identityが既存アカウントに自動的に紐付けられます（重複ユーザーは作成されません）。
+
+## パスワード管理エンドポイント
+
+### パスワード設定（認証必須）
+
+`PUT /api/v1/auth/password` — `Authorization: Bearer <accessToken>` が必要
+
+現在認証されているユーザーのパスワードを設定または更新します。OAuth2ユーザーがパスワードログインも使えるようにする際に使用します。
+
+```json
+{ "password": "newpassword123" }
+```
+
+`204 No Content` を返します。
+
+### パスワードリセット要求
+
+`POST /api/v1/auth/password/reset/request` — 認証不要
+
+パスワードリセットメールを送信します。メールアドレスが存在しない場合でも常に `202 Accepted` を返します（メールアドレスの列挙攻撃を防止）。
+
+```json
+{ "email": "user@example.com" }
+```
+
+`PasswordResetRequestedEvent` がパブリッシュされます — リセットリンクを送信するメールリスナーを実装してください。トークンの有効期限は **1時間** です。
+
+### パスワードリセット確認
+
+`POST /api/v1/auth/password/reset/confirm` — 認証不要
+
+リセットトークンを検証して新しいパスワードを設定します。トークンは1回限り有効で、成功後に削除されます。
+
+```json
+{ "token": "<reset-token>", "newPassword": "newpassword123" }
+```
+
+`204 No Content` を返します。トークンが無効または期限切れの場合は `401` を返します。
 
 ## `users` テーブルの拡張
 
