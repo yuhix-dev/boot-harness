@@ -1,0 +1,36 @@
+# Billing API
+
+@baseUrl = {{baseUrl}}
+@accessToken = <paste_access_token_here>
+
+
+### Get subscription status
+GET {{baseUrl}}/api/v1/billing/subscription
+Authorization: Bearer {{accessToken}}
+
+
+### Create checkout session
+POST {{baseUrl}}/api/v1/billing/checkout
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "plan": "STARTER"
+}
+
+
+### Create checkout session (with custom redirect URLs)
+POST {{baseUrl}}/api/v1/billing/checkout
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "plan": "PRO",
+  "successUrl": "http://localhost:3000/billing/success",
+  "cancelUrl": "http://localhost:3000/billing/cancel"
+}
+
+
+### Open Customer Portal
+POST {{baseUrl}}/api/v1/billing/portal
+Authorization: Bearer {{accessToken}}

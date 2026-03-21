@@ -34,6 +34,9 @@ public class User {
 
   @Column private String name;
 
+  @Column(name = "stripe_customer_id", unique = true)
+  private String stripeCustomerId;
+
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   private Role role = Role.USER;
