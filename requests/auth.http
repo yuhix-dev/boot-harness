@@ -5,7 +5,6 @@
 # After login, copy the refreshToken from the response and update @refreshToken below.
 
 @baseUrl = {{baseUrl}}
-@frontendBaseUrl = {{frontendBaseUrl}}
 
 # ─────────────────────────────────────────
 # Update these after a successful login
@@ -53,13 +52,12 @@ Content-Type: application/json
 }
 
 
-# ─────────────────────────────────────────
-# OAuth2 — open these URLs in a browser
-# ─────────────────────────────────────────
+
+### OAuth2 — open these URLs in a browser (not executable — browser only)
 # Google:  {{baseUrl}}/oauth2/authorization/google
 # GitHub:  {{baseUrl}}/oauth2/authorization/github
 #
 # On success, the browser is redirected to:
-#   {{frontendBaseUrl}}/auth/callback?accessToken=...&refreshToken=...
+#   <FRONTEND_BASE_URL>/auth/callback?accessToken=...&refreshToken=...
 # On failure:
-#   {{frontendBaseUrl}}/auth/error
+#   <FRONTEND_BASE_URL>/auth/error
