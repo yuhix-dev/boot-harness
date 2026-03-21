@@ -95,9 +95,7 @@ class BillingWebhookTest {
     String payload =
         "{\"id\":\"evt_test_789\",\"object\":\"event\",\"type\":\"invoice.payment_failed\","
             + "\"data\":{\"object\":{\"customer\":\"cus_123\"}}}";
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.add("Stripe-Signature", "t=123,v1=invalid");
+    HttpHeaders headers = webhookHeadersWithSecret(payload, "wrong-secret");
 
     var response =
         restTemplate.exchange(
@@ -106,13 +104,17 @@ class BillingWebhookTest {
             new HttpEntity<>(payload, headers),
             String.class);
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
   }
 
   private HttpHeaders webhookHeaders(String payload) {
+    return webhookHeadersWithSecret(payload, WEBHOOK_SECRET);
+  }
+
+  private HttpHeaders webhookHeadersWithSecret(String payload, String secret) {
     long timestamp = Instant.now().getEpochSecond();
     String signedPayload = timestamp + "." + payload;
-    String signature = hmacSha256Hex(WEBHOOK_SECRET, signedPayload);
+    String signature = hmacSha256Hex(secret, signedPayload);
 
     HttpHeaders headers = new HttpHeaders();
     headers.add("Stripe-Signature", "t=" + timestamp + ",v1=" + signature);

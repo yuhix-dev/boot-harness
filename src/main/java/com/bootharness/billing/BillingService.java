@@ -111,7 +111,7 @@ public class BillingService {
     try {
       event = Webhook.constructEvent(payload, signature, appProperties.stripe().webhookSecret());
     } catch (SignatureVerificationException e) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid webhook signature");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid webhook signature");
     }
 
     if (stripeEventRepository.existsById(event.getId())) {
