@@ -6,6 +6,7 @@ import com.bootharness.auth.dto.AuthResponse;
 import com.bootharness.auth.dto.LoginRequest;
 import com.bootharness.auth.dto.PasswordResetConfirmRequest;
 import com.bootharness.auth.dto.PasswordResetRequestRequest;
+import com.bootharness.auth.dto.RefreshRequest;
 import com.bootharness.auth.dto.RegisterRequest;
 import com.bootharness.auth.dto.SetPasswordRequest;
 import com.bootharness.user.User;
@@ -37,11 +38,13 @@ class AuthControllerTest {
   @Autowired TestRestTemplate restTemplate;
   @Autowired UserRepository userRepository;
   @Autowired PasswordResetTokenRepository passwordResetTokenRepository;
+  @Autowired RefreshTokenRepository refreshTokenRepository;
   @Autowired JwtService jwtService;
 
   @BeforeEach
   void setUp() {
     passwordResetTokenRepository.deleteAll();
+    refreshTokenRepository.deleteAll();
     userRepository.deleteAll();
   }
 
@@ -102,6 +105,49 @@ class AuthControllerTest {
     var response = login(oauthUser.getEmail(), "anypassword");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  // --- refresh ---
+
+  @Test
+  void refresh_rotatesTokenPair() {
+    var registerResponse = register("user@example.com", "password123", "Alice");
+    String oldRefreshToken = registerResponse.getBody().refreshToken();
+
+    var response =
+        restTemplate.postForEntity(
+            "/api/v1/auth/refresh", new RefreshRequest(oldRefreshToken), AuthResponse.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).isNotNull();
+    assertThat(response.getBody().refreshToken()).isNotBlank();
+    assertThat(response.getBody().refreshToken()).isNotEqualTo(oldRefreshToken);
+    assertThat(refreshTokenRepository.findByToken(oldRefreshToken)).isEmpty();
+    assertThat(refreshTokenRepository.findByToken(response.getBody().refreshToken())).isPresent();
+  }
+
+  @Test
+  void refresh_invalidToken_returns401() {
+    var response =
+        restTemplate.postForEntity(
+            "/api/v1/auth/refresh", new RefreshRequest("invalid-token"), String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  // --- logout ---
+
+  @Test
+  void logout_revokesRefreshToken() {
+    var registerResponse = register("user@example.com", "password123", "Alice");
+    String refreshToken = registerResponse.getBody().refreshToken();
+
+    var response =
+        restTemplate.postForEntity(
+            "/api/v1/auth/logout", new RefreshRequest(refreshToken), Void.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    assertThat(refreshTokenRepository.findByToken(refreshToken)).isEmpty();
   }
 
   // --- set password ---
