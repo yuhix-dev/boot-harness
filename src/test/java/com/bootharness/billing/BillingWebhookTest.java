@@ -2,7 +2,7 @@ package com.bootharness.billing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.bootharness.email.EmailRepository;
+import com.bootharness.testsupport.MockEmailConfig;
 import com.bootharness.user.User;
 import com.bootharness.user.UserRepository;
 import java.nio.charset.StandardCharsets;
@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -26,6 +26,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(MockEmailConfig.class)
 @Testcontainers
 class BillingWebhookTest {
 
@@ -37,7 +38,6 @@ class BillingWebhookTest {
   @Autowired TestRestTemplate restTemplate;
   @Autowired UserRepository userRepository;
   @Autowired StripeEventRepository stripeEventRepository;
-  @MockBean EmailRepository emailRepository;
 
   @BeforeEach
   void setUp() {
