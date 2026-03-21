@@ -104,7 +104,7 @@ class BillingWebhookTest {
             new HttpEntity<>(payload, headers),
             String.class);
 
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
   }
 
   private HttpHeaders webhookHeaders(String payload) {
