@@ -13,6 +13,8 @@ app:
     webhook-secret: "test"
     price-id-starter: "test"
     price-id-pro: "test"
+  oauth2:
+    redirect-base-url: "http://localhost:3000"
 
 spring:
   security:

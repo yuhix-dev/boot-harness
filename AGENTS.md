@@ -185,7 +185,9 @@ When changing behavior:
 Before coding:
 
 1. read this file
-2. if present, read `AGENTS.dev.md` for maintainer-only context (never commit its contents)
+2. Use your file read tool to open `AGENTS.dev.md` at the project root before writing any code.
+   It contains essential maintainer context (pricing, positioning, workflow).
+   Never commit its contents. This is mandatory, not optional.
 3. inspect relevant code and docs
 4. understand whether the task belongs to Starter or Pro
 5. keep the change aligned with BootHarness positioning
