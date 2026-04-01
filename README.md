@@ -1,8 +1,8 @@
 # BootHarness
 
-Spring Boot ベースのバックエンドアプリケーションです。
+BootHarness is a Spring Boot backend application.
 
-## 技術スタック
+## Stack
 - Java 21
 - Spring Boot 3.5
 - Spring Security
@@ -12,19 +12,26 @@ Spring Boot ベースのバックエンドアプリケーションです。
 - Stripe
 - OAuth2 Client
 
-## セットアップ
-1. `.env.example` をコピーして `.env` を作成する
-2. 必要な環境変数を設定する
-3. PostgreSQL を起動する
+## Prerequisites
+- Java 21
+- PostgreSQL
+- A populated `.env` file based on `.env.example`
+
+## Setup
+1. Copy `.env.example` to `.env`.
+2. Fill in the required environment variables.
+3. Start PostgreSQL.
+4. Run the application.
 
 ```bash
 cp .env.example .env
 ./gradlew bootRun
 ```
 
-`.env` が存在する場合、`bootRun` はその内容を読み込んで起動します。
+If `.env` exists, `bootRun` loads it automatically at startup.
 
-## 主な環境変数
+## Environment Variables
+Common variables used by this project:
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - `JWT_SECRET`
 - `CORS_ALLOWED_ORIGINS`
@@ -33,7 +40,7 @@ cp .env.example .env
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
 
-## よく使うコマンド
+## Common Commands
 ```bash
 ./gradlew bootRun
 ./gradlew test
@@ -41,7 +48,12 @@ cp .env.example .env
 ./gradlew spotlessApply
 ```
 
-## ドキュメント
-- 英語ドキュメント: `docs/en/`
-- 日本語ドキュメント: `docs/ja/`
-- 補助情報: `HELP.md`
+## Docs and References
+- English docs: `docs/en/`
+- Japanese docs: `docs/ja/`
+- Supplemental notes: `HELP.md`
+- HTTP request samples and project notes: `requests/`
+
+## Development Notes
+- `Dockerfile`, `docker-compose.yml`, and `docker-compose.full.yml` are available for local container-based workflows.
+- Keep the README aligned with `README.md`, `HELP.md`, and the `docs/` directory when setup details change.
