@@ -6,6 +6,12 @@ If `.ai-harness/` exists in this repository, treat it as the local harness overr
 
 Read `AGENTS.md` before code changes, and if a local ignored file such as `CLAUDE.dev.md` exists, read it after this file and never commit its contents.
 
+Project harness operations are tracked in:
+- `.claude/rules/`
+- `.claude/skills/`
+- `.claude/hooks/`
+- `.ai-harness/claude-progress.txt`
+
 > **Japanese?** A Japanese version is available at `CLAUDE.ja.md`.
 > To use it, rename the files:
 > ```bash
