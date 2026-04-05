@@ -1,0 +1,20 @@
+name: BootHarness
+language:
+  - java
+main_commands:
+  - ./gradlew test
+  - ./gradlew check
+constraints:
+  - backend-first
+  - do not add frontend frameworks unless explicitly requested
+  - keep changes aligned with Starter vs Pro product boundaries
+entry_docs:
+  - .ai-harness/docs/index.md
+  - AGENTS.md
+  - CLAUDE.md
+overrides:
+  docs: true
+  prompts: true
+  runbooks: true
+  hooks: true
+  memories: true

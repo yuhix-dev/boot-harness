@@ -2,6 +2,14 @@
 
 Read this file before making any code changes.
 
+## Shared harness base
+
+This repository uses `~/.ai-harness/AGENTS.md` as the shared base.
+Apply the shared harness rules first, then treat this file as the BootHarness-specific override.
+If `.ai-harness/` exists in this repository, treat it as the local harness override layer after this file.
+
+If a project-local ignored file such as `AGENTS.dev.md` exists, read it after this file and never commit its contents.
+
 ## 1. Project purpose
 
 BootHarness is a production-ready Spring Boot SaaS starter kit.

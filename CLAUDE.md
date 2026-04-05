@@ -1,5 +1,11 @@
 # CLAUDE.md — BootHarness Codebase Guide
 
+This repository uses `~/.ai-harness/CLAUDE.md` as the shared Claude-facing base.
+Apply the shared harness guidance first, then treat this file as the BootHarness-specific override.
+If `.ai-harness/` exists in this repository, treat it as the local harness override layer after this file.
+
+Read `AGENTS.md` before code changes, and if a local ignored file such as `CLAUDE.dev.md` exists, read it after this file and never commit its contents.
+
 > **Japanese?** A Japanese version is available at `CLAUDE.ja.md`.
 > To use it, rename the files:
 > ```bash
