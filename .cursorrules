@@ -1,0 +1,66 @@
+# BootHarness — Cursor AI Rules
+
+Spring Boot 3.x SaaS backend starter kit. Backend API only — no frontend included.
+
+## Project structure
+
+```
+com.bootharness
+├── auth/        JWT, OAuth2 (Google/GitHub), email+password, password reset
+├── billing/     Stripe subscriptions, webhooks, Customer Portal
+├── email/       Resend API, transactional email templates
+├── user/        User entity, profile endpoints
+├── api/         Global error handling (RFC 7807 ProblemDetail)
+└── config/      Security, CORS, AppProperties, beans
+```
+
+## Architecture rules
+
+- Feature-based packaging — all classes for a feature live in one package
+- Layered within each package: `Controller → Service → Repository`
+- Cross-feature communication via Spring Application Events only
+  - Never call `EmailService` directly from `AuthService` — publish an event instead
+- No Hexagonal/DDD out of the box
+
+## Code conventions
+
+- Java 21: use Records for DTOs, Pattern Matching where it improves clarity
+- Constructor injection only — never `@Autowired` on fields
+- Never expose JPA entities directly in API responses — always use DTOs
+- SLF4J structured logging with key-value pairs — no string concatenation
+- Only implement what is explicitly requested — no speculative extras
+- Delete old code when replacing an implementation — no dead code
+- Formatting: Google Java Style via Spotless (`./gradlew spotlessApply`)
+
+## REST API
+
+- Base path: `/api/v1/`
+- Error format: RFC 7807 `ProblemDetail` (`application/problem+json`)
+- Validation: Jakarta annotations (`@Valid`, `@NotBlank`, etc.)
+
+## Database
+
+- Table names: `snake_case` plural — `users`, `refresh_tokens`
+- Every table has: `id` (UUID), `created_at`, `updated_at`
+- Migrations: `src/main/resources/db/migration/V{n}__{description}.sql`
+- Never use `ddl-auto: create` or `update` — Flyway owns all schema changes
+
+## Security
+
+- Do not document security implementation details (algorithms, cipher suites, etc.) in any file — helps attackers
+- CORS configured via `CORS_ALLOWED_ORIGINS` env var
+
+## Required actions when changing code
+
+- Update `docs/en/` and `docs/ja/` when adding or changing a feature
+- Update or create the corresponding `.http` file in `requests/` when adding or modifying an API endpoint
+
+## Out of scope
+
+Frontend, Kafka, GraphQL, gRPC, Kubernetes, WebSocket, multi-tenancy, soft delete, feature flags.
+
+## Before starting
+
+1. Read `AGENTS.md`
+2. Read `AGENTS.dev.md` if it exists (gitignored — contains private maintainer context)
+3. Read `ARCHITECTURE.md` for system design overview
